@@ -1,0 +1,5 @@
+layer,primary_control,risk_level
+Perimeter,Fence + Guard,Low
+Entry,Biometric + Badge,Low
+White Space,CCTV + Rack Locks,Medium
+Network Room,Restricted Access,Low

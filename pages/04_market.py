@@ -1,71 +1,60 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
 
-st.title("04 · Market Intelligence")
-st.write("Real public data for Mexico and the broader Latin American data center market.")
+from utils.charts import bar
+from utils.data_loader import lookup, market_focus, market_latam, market_mexico
+from utils.ui import render_sources, show_table
 
-city_data = pd.DataFrame({
-    "Location": ["Mexico City", "Querétaro", "Monterrey", "Other Mexico markets"],
-    "Data Centers": [40, 28, 16, 89]
-})
-
-latam_metrics = pd.DataFrame({
-    "Metric": [
-        "LATAM colocation inventory growth (YoY, 2025)",
-        "LATAM average vacancy rate (2025)",
-        "Pipeline already precommitted (2025)"
-    ],
-    "Value": [20, 9, 42]
-})
-
-country_focus = pd.DataFrame({
-    "Country Group": ["Core demand countries in LATAM"],
-    "Countries": ["Brazil, Mexico, Chile, Colombia"]
-})
-
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Mexico data centers", "173")
-with col2:
-    st.metric("Querétaro data centers", "28")
-with col3:
-    st.metric("LATAM vacancy rate", "9%")
-
-fig_city = px.bar(
-    city_data,
-    x="Location",
-    y="Data Centers",
-    title="Mexico Data Center Directory Snapshot"
+st.title("04 · Market intelligence")
+st.write(
+    "A frozen snapshot of public figures for Mexico and the broader Latin American market."
 )
-st.plotly_chart(fig_city, use_container_width=True)
 
-fig_latam = px.bar(
-    latam_metrics,
-    x="Metric",
-    y="Value",
-    title="LATAM Market Indicators (2025)"
+mexico = market_mexico()
+latam = market_latam()
+focus = market_focus()
+
+total = int(mexico["data_centers"].sum())
+queretaro = int(mexico.loc[mexico["location"] == "Querétaro", "data_centers"].iloc[0])
+vacancy = float(lookup(latam, "vacancy_rate", "percent"))
+
+facilities, queretaro_metric, vacancy_metric = st.columns(3)
+facilities.metric("Mexico data centers", total)
+queretaro_metric.metric("Querétaro data centers", queretaro)
+vacancy_metric.metric("LATAM vacancy rate", f"{vacancy:.0f}%")
+
+cities = bar(
+    mexico,
+    x="location",
+    y="data_centers",
+    title="Mexico data center directory snapshot",
+    value_title="Facilities",
 )
-st.plotly_chart(fig_latam, use_container_width=True)
+st.plotly_chart(cities, use_container_width=True)
+st.caption(
+    "Facility counts are a snapshot saved in this repository. "
+    "Cloudscene's live directory can move after this snapshot."
+)
 
-st.subheader("Core Demand Countries in Latin America")
-st.dataframe(country_focus, use_container_width=True)
+regional = bar(
+    latam,
+    x="label",
+    y="percent",
+    title="LATAM market indicators, 2025",
+    horizontal=True,
+    value_title="Percent",
+)
+regional.update_traces(texttemplate="%{x:.0f}%", textposition="outside", cliponaxis=False)
+regional.update_layout(margin={"r": 72})
+st.plotly_chart(regional, use_container_width=True)
 
-st.caption("Note: Cloudscene is a live commercial directory, so facility counts may change over time.")
+st.subheader("Core demand countries in Latin America")
+show_table(focus, {"country_group": "Country group", "countries": "Countries"})
 
-csv_data = city_data.to_csv(index=False).encode("utf-8")
-
+export = mexico.rename(columns={"location": "Location", "data_centers": "Data Centers"})
 st.download_button(
     label="Download Mexico market data as CSV",
-    data=csv_data,
+    data=export.to_csv(index=False).encode("utf-8"),
     file_name="mexico_market_data.csv",
-    mime="text/csv"
+    mime="text/csv",
 )
-
-st.markdown("### Sources")
-st.markdown("""
-- JLL, **Latin America Data Center Report Year-end 2025**  
-  https://www.jll.com/en-us/insights/latin-america-data-center-report-year-end-2025
-- Cloudscene, **Mexico Market Overview**  
-  https://cloudscene.com/market/data-centers-in-mexico/all
-""")
+render_sources("market")

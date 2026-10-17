@@ -1,44 +1,37 @@
 import streamlit as st
-import pandas as pd
+
+from utils.data_loader import security_checklist, security_layers
+from utils.ui import show_table
 
 st.title("03 · Security")
-st.write("Reference security checklist for a fictional facility, aligned to common data center governance frameworks.")
+st.write(
+    "Fictional checklist for the YucaCore case. Control names follow common "
+    "data-center practice and the vocabulary of ISO/IEC 27001 and ANSI/TIA-942. "
+    "This page is not an audit or a certification."
+)
 
-compliance = pd.DataFrame({
-    "Control": [
-        "CCTV coverage",
-        "Biometric access",
-        "Visitor logs",
-        "Rack locking",
-        "Fire suppression",
-        "ISO 27001 policy review",
-        "TIA-942 physical zoning"
-    ],
-    "Status": [
-        "Implemented",
-        "Implemented",
-        "Implemented",
-        "Implemented",
-        "Implemented",
-        "In Progress",
-        "In Progress"
-    ]
-})
+checklist = security_checklist()
+layers = security_layers()
 
-controls = pd.DataFrame({
-    "Layer": ["Perimeter", "Entry", "White Space", "Network Room"],
-    "Primary Control": ["Fence + Guard", "Biometric + Badge", "CCTV + Rack Locks", "Restricted Access"],
-    "Risk Level": ["Low", "Low", "Medium", "Low"]
-})
+implemented, in_progress = st.columns(2)
+implemented.metric(
+    "Implemented controls",
+    int((checklist["status"] == "Implemented").sum()),
+)
+in_progress.metric(
+    "Controls in progress",
+    int((checklist["status"] == "In Progress").sum()),
+)
 
-col1, col2 = st.columns(2)
-col1.metric("Implemented Controls", "5")
-col2.metric("Controls In Progress", "2")
+st.subheader("Reference checklist")
+show_table(checklist, {"control": "Control", "status": "Status"})
 
-st.subheader("Reference Checklist")
-st.dataframe(compliance, use_container_width=True)
-
-st.subheader("Physical Security Controls")
-st.dataframe(controls, use_container_width=True)
-
-st.caption("This page is a fictional operating checklist aligned to standard data center security practices.")
+st.subheader("Physical security controls")
+show_table(
+    layers,
+    {
+        "layer": "Layer",
+        "primary_control": "Primary control",
+        "risk_level": "Risk level",
+    },
+)

@@ -1,52 +1,77 @@
-import streamlit as st
 import pandas as pd
-import plotly.express as px
+import streamlit as st
+
+from utils.charts import bar
+from utils.data_loader import energy_reference, lookup
+from utils.metrics import interpret_pue, power_usage_effectiveness
+from utils.ui import render_sources, show_table
 
 st.title("02 · Energy")
-st.write("Real energy-efficiency benchmark page using the official PUE formula and industry survey data.")
-
-benchmark_df = pd.DataFrame({
-    "Metric": ["Industry average PUE (2024)", "PUE definition"],
-    "Value": ["1.56", "Total facility energy / IT equipment energy"]
-})
-
-comparison_df = pd.DataFrame({
-    "Category": ["Industry average PUE"],
-    "Value": [1.56]
-})
-
-col1, col2 = st.columns(2)
-with col1:
-    st.metric("Industry average PUE", "1.56")
-with col2:
-    st.metric("Benchmark source", "Uptime 2024")
-
-fig = px.bar(
-    comparison_df,
-    x="Category",
-    y="Value",
-    title="Industry Average PUE Benchmark"
+st.write(
+    "Power Usage Effectiveness for a facility, compared with the published industry average."
 )
-st.plotly_chart(fig, use_container_width=True)
 
-st.subheader("Interactive PUE Calculator")
+reference = energy_reference()
+benchmark = float(lookup(reference, "industry_pue_2024"))
 
-col1, col2 = st.columns(2)
-with col1:
-    it_load = st.number_input("IT Equipment Energy (kWh)", min_value=1.0, value=1000.0)
-with col2:
-    total_facility = st.number_input("Total Facility Energy (kWh)", min_value=1.0, value=1560.0)
+st.latex(
+    r"PUE = \frac{\text{total facility energy}}{\text{IT equipment energy}}"
+)
+st.caption(
+    "Both inputs have to cover the same period. The unit cancels, which is why PUE is a ratio. "
+    "The defaults below reproduce the 2024 industry average."
+)
 
-pue = total_facility / it_load
-st.metric("Calculated PUE", f"{pue:.2f}")
+it_column, facility_column = st.columns(2)
+with it_column:
+    it_load = st.number_input(
+        "IT equipment energy (kWh)",
+        min_value=1.0,
+        value=1000.0,
+        step=10.0,
+        format="%.1f",
+    )
+with facility_column:
+    total_facility = st.number_input(
+        "Total facility energy (kWh)",
+        min_value=1.0,
+        value=1560.0,
+        step=10.0,
+        format="%.1f",
+    )
+
+pue = power_usage_effectiveness(total_facility, it_load)
+
+average, calculated = st.columns(2)
+average.metric(
+    "Industry average PUE, 2024",
+    f"{benchmark:.2f}",
+    help="Uptime Institute Global Data Center Survey 2024.",
+)
+calculated.metric("Calculated PUE", f"{pue:.2f}")
+
+message = interpret_pue(pue, benchmark)
+if pue < 1:
+    st.error(message)
+else:
+    st.info(message)
+
+comparison = pd.DataFrame(
+    {
+        "scenario": ["Industry average, 2024", "This calculation"],
+        "pue": [benchmark, pue],
+    }
+)
+figure = bar(
+    comparison,
+    x="scenario",
+    y="pue",
+    title="Calculated PUE against the 2024 industry average",
+    color="scenario",
+    value_title="PUE",
+)
+st.plotly_chart(figure, use_container_width=True)
 
 st.subheader("Reference")
-st.dataframe(benchmark_df, use_container_width=True)
-
-st.markdown("### Sources")
-st.markdown("""
-- The Green Grid, **Power Usage Effectiveness (PUE)**  
-  https://www.thegreengrid.org/node/372
-- Uptime Institute, **Global Data Center Survey 2024**  
-  https://datacenter.uptimeinstitute.com/rs/711-RIA-145/images/2024.GlobalDataCenterSurvey.Report.pdf?version=0
-""")
+show_table(reference, {"label": "Metric", "value": "Value"})
+render_sources("energy")

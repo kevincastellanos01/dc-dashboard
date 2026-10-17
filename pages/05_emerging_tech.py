@@ -1,60 +1,58 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
 
-st.title("05 · Emerging Technologies")
-st.write("Real growth and infrastructure outlook based on public industry reports.")
+from utils.charts import bar
+from utils.data_loader import emerging_capacity, emerging_signals
+from utils.metrics import format_quantity
+from utils.ui import render_sources, show_table
 
-capacity_df = pd.DataFrame({
-    "Year": ["2025", "2030"],
-    "Global Capacity (GW)": [103, 200]
-})
+st.title("05 · Emerging technologies")
+st.write("Capacity and workload outlook copied from public industry reports.")
 
-trend_df = pd.DataFrame({
-    "Metric": [
-        "Global DC sector CAGR through 2030",
-        "New capacity added between 2026 and 2030",
-        "AI share of workloads by 2030",
-        "Industry average PUE (2024)"
-    ],
-    "Value": [14, 100, 50, 1.56]
-})
+capacity = emerging_capacity()
+signals = emerging_signals()
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("2030 global capacity", "200 GW")
-with col2:
-    st.metric("Growth rate", "14% CAGR")
-with col3:
-    st.metric("AI share by 2030", "50%")
 
-fig_capacity = px.bar(
-    capacity_df,
-    x="Year",
-    y="Global Capacity (GW)",
-    title="Global Data Center Capacity Outlook"
+def reading(key: str) -> str:
+    row = signals.loc[signals["key"] == key].iloc[0]
+    return format_quantity(float(row["value"]), str(row["unit"]))
+
+
+capacity_2030 = int(capacity.loc[capacity["year"] == "2030", "capacity_gw"].iloc[0])
+
+outlook, growth, ai_share = st.columns(3)
+outlook.metric("2030 global capacity", f"{capacity_2030} GW")
+growth.metric("Growth rate", reading("cagr"))
+ai_share.metric("AI share by 2030", reading("ai_share"))
+
+figure = bar(
+    capacity,
+    x="year",
+    y="capacity_gw",
+    title="Global data center capacity outlook",
+    value_title="Global capacity (GW)",
 )
-st.plotly_chart(fig_capacity, use_container_width=True)
+st.plotly_chart(figure, use_container_width=True)
 
-fig_trends = px.bar(
-    trend_df,
-    x="Metric",
-    y="Value",
-    title="Key Technology and Infrastructure Signals"
+st.subheader("Signals")
+st.caption(
+    "These figures do not share a unit, so they stay in a table instead of one bar chart."
 )
-st.plotly_chart(fig_trends, use_container_width=True)
+display = signals.copy()
+display["reading"] = [
+    format_quantity(value, unit)
+    for value, unit in zip(display["value"], display["unit"], strict=True)
+]
+show_table(display, {"label": "Signal", "reading": "Reading"})
 
-st.markdown("### Strategic interpretation")
-st.write("1. AI is shifting data center design toward higher power density and energy-aware infrastructure.")
-st.write("2. Capacity growth is accelerating, but grid constraints make energy innovation a competitive advantage.")
-st.write("3. Efficiency benchmarks remain important because average industry PUE is improving slowly, not dramatically.")
-
-st.markdown("### Sources")
-st.markdown("""
-- JLL, **2026 Global Data Center Outlook**  
-  https://www.jll.com/en-us/insights/market-outlook/data-center-outlook
-- JLL newsroom, **Global data center sector to nearly double to 200GW**  
-  https://www.jll.com/en-us/newsroom/global-data-center-sector-to-nearly-double-to-200gw-amid-ai-infrastructure-boom
-- Uptime Institute, **Global Data Center Survey 2024**  
-  https://datacenter.uptimeinstitute.com/rs/711-RIA-145/images/2024.GlobalDataCenterSurvey.Report.pdf?version=0
-""")
+st.subheader("Reading the figures")
+st.write(
+    "1. AI is shifting data center design toward higher power density and energy-aware infrastructure."
+)
+st.write(
+    "2. Capacity growth is accelerating, and grid constraints make energy innovation a competitive advantage."
+)
+st.write(
+    "3. Efficiency still matters at this scale: the 2024 industry average PUE is 1.56, "
+    "so overhead energy remains a design constraint."
+)
+render_sources("emerging")

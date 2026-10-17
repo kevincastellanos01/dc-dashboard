@@ -1,0 +1,5 @@
+key,label,value,unit
+cagr,Global DC sector CAGR through 2030,14,%
+added_capacity,New capacity added between 2026 and 2030,100,GW
+ai_share,AI share of workloads by 2030,50,%
+industry_pue_2024,Industry average PUE (2024),1.56,ratio

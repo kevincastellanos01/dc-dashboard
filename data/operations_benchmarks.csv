@@ -1,0 +1,4 @@
+key,label,value
+outages_over_100k,Outages costing more than $100k,54%
+outages_over_1m,Outages costing more than $1M,20%
+leading_cause,Leading cause of serious outages,Power issues
