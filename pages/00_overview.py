@@ -67,6 +67,5 @@ st.markdown(
 )
 
 st.caption(
-    "Pushes to main build a container, publish it to Amazon ECR, and roll "
-    "the ECS Fargate service. AWS resources are defined with Terraform in infra/."
+    "Run it locally with Streamlit. The cited figures and the case-study tables live in data/."
 )

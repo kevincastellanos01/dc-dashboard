@@ -43,18 +43,7 @@ PUE is total facility energy divided by IT equipment energy over the same period
 
 ## Stack
 
-Python, Streamlit, pandas, and Plotly. The production runtime is a container on ECS Fargate behind an Application Load Balancer. Terraform defines the AWS resources. GitHub Actions runs the tests, publishes the image to ECR, and forces a new deployment. Details are in [`infra/README.md`](infra/README.md).
-
-```mermaid
-flowchart LR
-  change[Push to main] --> tests[pytest]
-  tests --> ecr[Push image to ECR]
-  ecr --> ecs[ECS Fargate rolls the service]
-  browser[Browser] --> alb[Application Load Balancer]
-  alb --> ecs
-```
-
-A pull request runs the tests and does not deploy. A push to `main` deploys only after those tests pass.
+Python, Streamlit, pandas, and Plotly. GitHub Actions runs the test suite on pull requests and on `main`. The container in the Dockerfile is for running the app yourself. [`infra/`](infra/README.md) is a Terraform definition for an AWS deployment; this repository does not apply it.
 
 ## Layout
 
@@ -67,8 +56,8 @@ utils/charts.py         Shared Plotly theme and bar charts
 utils/ui.py             Page chrome, tables, citations
 data/                   Snapshot tables and sources.csv
 tests/                  Metric math, cited figures, chart order
-infra/                  Terraform for ECR, ECS, the load balancer, logs
-.github/workflows/      Test, then deploy on main
+infra/                  Optional Terraform definition, not applied by CI
+.github/workflows/      Tests only
 Dockerfile
 ```
 
